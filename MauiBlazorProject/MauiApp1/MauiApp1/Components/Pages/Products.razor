@@ -1,0 +1,202 @@
+﻿@page "/Products"
+@using MauiApp1.Models;
+@inject HttpClient http;
+
+<EditForm Model="productCategory" OnValidSubmit="HandleSubmit">
+    <div class="row">
+        <div class="col-12">
+            <label class="col-form-label">Category Name</label>
+            <InputText class="form-control" @bind-Value="productCategory.Name" />
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-bordered">
+                <tr>
+                    <th>Product Name</th>
+                    <th>Product Number</th>
+                    <th>Color</th>
+                    <th>Standart Cost</th>
+                    <th>List Price</th>
+                    <th>Size</th>
+                    <th>Weight</th>
+                    <th>Action</th>
+                </tr>
+
+                @foreach (var p in productCategory.Products)
+                {
+                    <tr>
+                        <td>
+                            <InputText @bind-Value="p.Name" />
+                        </td>
+                        <td>
+                            <InputText @bind-Value="p.ProductNumber" />
+                        </td>
+                        <td>
+                            <InputText @bind-Value="p.Color" />
+                        </td>
+                        <td>
+                            <InputNumber @bind-Value="p.StandardCost" />
+                        </td>
+                        <td>
+                            <InputNumber @bind-Value="p.ListPrice" />
+                        </td>
+                        <td>
+                            <InputNumber @bind-Value="p.Size" />
+                        </td>
+                        <td>
+                            <InputNumber @bind-Value="p.Weight" />
+                        </td>
+                        <td>
+                            <div>
+                                <button class="btn btn-danger btn-sm" type="button" @onclick="(()=> RemoveProduct(p))">Remove</button>
+                            </div>
+                            
+                        </td>
+                    </tr>
+                }
+               
+            </table>
+            
+        </div>
+       
+    </div>
+    
+    <div class="pb-3">
+        <button type="button" class="btn btn-success" @onclick="AddProducts">Add</button>
+        <button class="btn btn-primary" type="submit">@(productCategory.ProductCategoryID > 0 ? "Update" : "Create")</button>
+    </div>
+</EditForm>
+
+
+@if (data == null)
+{
+    <p>loading....</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <tr>
+            <th>Category Name</th>
+            <th>Products</th>
+            <th>Actions</th>
+        </tr>
+
+        @foreach (var c in data)
+        {
+            <tr>
+                <td>@c.Name</td>
+                <td colspan="1">
+                    <table class="table table-bordered table-striped">
+                        <tr>
+                            <th>ProductName</th>
+                            <th>Product Number</th>
+                            <th>Color</th>
+                            <th>StandardCost</th>
+                            <th>ListPrice</th>
+                            <th>Size</th>
+                            <th>Weight</th>
+                        </tr>
+                        @foreach (var p in c.Products)
+                        {
+
+                            <tr>
+                                <td>@p.Name</td>
+                                <td>@p.ListPrice</td>
+                                <td>@p.Color</td>
+                                <td>@p.ProductNumber</td>
+                                <td>@p.StandardCost</td>
+                                <td>@p.Weight</td>
+                                <td>@p.Size</td>
+
+                            </tr>
+                        }
+                    </table>
+                </td>
+                <td>
+                    <div>
+                        <button class="btn btn-primary" type="button" @onclick="()=> EditProduct(c.ProductCategoryID)">Edit</button>
+                        <button class="btn btn-danger" type="button" @onclick="()=> DeleteProduct(c.ProductCategoryID)">Delete</button>
+
+                    </div>
+                </td>
+            </tr>
+
+        }
+    </table>
+}
+
+
+@code {
+    private List<ProductCategory> data;
+
+
+    private ProductCategory productCategory = new()
+        {
+            Products = new List<Product> { new Product() }
+        };
+
+    public void RemoveProduct(Product product) => productCategory.Products.Remove(product);
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            data = await http.GetFromJsonAsync<List<ProductCategory>>("ProductCategories");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+    public void reset()
+    {
+        productCategory = new()
+            {
+                Products = new List<Product> { new Product() }
+            };
+
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+
+        var response = await http.DeleteAsync($"ProductCategories/{id}");
+        data = await http.GetFromJsonAsync<List<ProductCategory>>("ProductCategories");
+
+
+
+    }
+
+
+    private async Task HandleSubmit()
+    {
+        if (productCategory.ProductCategoryID > 0)
+        {
+            await http.PutAsJsonAsync<ProductCategory>($"ProductCategories/{productCategory.ProductCategoryID}", productCategory);
+            data = await http.GetFromJsonAsync<List<ProductCategory>>("ProductCategories");
+            reset();
+        }
+        else
+        {
+            await http.PostAsJsonAsync<ProductCategory>("ProductCategories", productCategory);
+            data = await http.GetFromJsonAsync<List<ProductCategory>>("ProductCategories");
+            reset();
+        }
+    }
+
+    private void AddProducts()
+    {
+        productCategory.Products.Add(new Product());
+    }
+
+    private async Task EditProduct(int id)
+    {
+        productCategory = await http.GetFromJsonAsync<ProductCategory>($"ProductCategories/{id}");
+        data = await http.GetFromJsonAsync<List<ProductCategory>>("ProductCategories");
+    }
+
+}
+
+
